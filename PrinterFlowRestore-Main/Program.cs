@@ -14,7 +14,7 @@ public class Program
         if (!IsRunningAsAdministrator())
         {
             Log("Please run the software as Administrator", ConsoleColor.Blue);
-            Environment.Exit(0);
+            TerminateConsole();
         }
 
         try
@@ -30,8 +30,14 @@ public class Program
         finally
         {
             RestartService();
-            Environment.Exit(0);
+            TerminateConsole();
         }
+    }
+
+    public static void TerminateConsole()
+    {
+        Console.ReadLine();
+        Environment.Exit(0);
     }
 
     public static void StopService()
