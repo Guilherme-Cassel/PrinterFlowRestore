@@ -6,6 +6,7 @@ namespace PrinterFlowRestore;
 public class Program
 {
     public static ServiceController PrinterSpooler = new ServiceController("Spooler de Impressão");
+
     public static string SpoolerJobsPath = "C:\\Windows\\System32\\spool\\PRINTERS\\";
 
     static void Main()
@@ -13,7 +14,7 @@ public class Program
         if (!IsRunningAsAdministrator())
         {
             Log("Please run the software as Administrator", ConsoleColor.Blue);
-            TerminateConsole();
+            Environment.Exit(0);
         }
 
         try
@@ -29,14 +30,8 @@ public class Program
         finally
         {
             RestartService();
-            TerminateConsole();
+            Environment.Exit(0);
         }
-    }
-
-    public static void TerminateConsole()
-    {
-        Console.ReadLine();
-        Environment.Exit(0);
     }
 
     public static void StopService()
