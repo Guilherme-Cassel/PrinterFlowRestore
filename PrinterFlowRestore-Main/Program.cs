@@ -1,80 +1,97 @@
 ﻿using System.Security.Principal;
 using System.ServiceProcess;
 
-namespace ConsoleTesting2;
+namespace PrinterFlowRestore;
 
-internal class Program
+public class Program
 {
     public static ServiceController PrinterSpooler = new ServiceController("Spooler de Impressão");
+    public static string SpoolerJobsPath = "C:\\Windows\\System32\\spool\\PRINTERS\\";
 
     static void Main()
     {
         if (!IsRunningAsAdministrator())
         {
-            TerminateConsole("Please run the software as Administrator", ConsoleColor.Blue);
+            Log("Please run the software as Administrator", ConsoleColor.Blue);
+            TerminateConsole();
         }
 
         try
         {
             StopService();
             CleanSpoolQueueFolder();
+            Log($"Printer Queues Cleaned Successfully", ConsoleColor.Green);
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Error While Cleaning Printer Queues: {ex.Message}");
+            Log($"Error While Cleaning Printer Queues: {ex.Message}", ConsoleColor.Red);
         }
         finally
         {
-            StartService();
-            TerminateConsole($"Printer Queues Cleaned Successfully", ConsoleColor.Green);
+            RestartService();
+            TerminateConsole();
         }
     }
 
-    public static void TerminateConsole(string message, ConsoleColor color = ConsoleColor.White)
+    public static void TerminateConsole()
     {
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ForegroundColor = ConsoleColor.White;
         Console.ReadLine();
         Environment.Exit(0);
     }
 
     public static void StopService()
     {
-        PrinterSpooler.Stop();
-        PrinterSpooler.WaitForStatus(ServiceControllerStatus.Stopped);
+        try
+        {
+            PrinterSpooler.Stop();
+            PrinterSpooler.WaitForStatus(ServiceControllerStatus.Stopped);
+        }
+        catch (InvalidOperationException)
+        {
+            //the service is already stopped.
+        }
+        finally
+        {
+            Log("Spooler Service Stopped", ConsoleColor.Blue);
+        }
     }
 
-    public static void StartService()
+    public static void RestartService()
     {
-        PrinterSpooler.Start();
-        PrinterSpooler.WaitForStatus(ServiceControllerStatus.Running);
+        try
+        {
+            PrinterSpooler.Start();
+            PrinterSpooler.WaitForStatus(ServiceControllerStatus.Running);
+        }
+        catch (InvalidOperationException)
+        {
+            //the service is already running.
+        }
+        finally
+        {
+            Log("Spooler Service Restarted", ConsoleColor.Blue);
+        }
     }
 
     public static void CleanSpoolQueueFolder()
     {
-        string path = "C:\\Windows\\System32\\spool\\PRINTERS\\";
-
-        foreach (string entry in Directory.GetFileSystemEntries(path))
+        foreach (string entry in Directory.GetFileSystemEntries(SpoolerJobsPath))
         {
-            if (File.Exists(entry))
-            {
-                File.Delete(entry);
-            }
-            else if (Directory.Exists(entry))
-            {
-                Directory.Delete(entry, true);
-            }
+            Directory.Delete(entry, true);
         }
     }
 
     public static bool IsRunningAsAdministrator()
     {
-        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-        {
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
+        using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    public static void Log(string msg, ConsoleColor color)
+    {
+        Console.ForegroundColor = color;
+        Console.WriteLine(msg);
+        Console.ForegroundColor = ConsoleColor.White;
     }
 }
